@@ -1,0 +1,172 @@
+// vreport
+
+
+// 	/src/app/shared/utility/locale-date-picker/locale-date-picker.component.ts
+
+// CHILD COMPONENT
+// paste following selector:
+//              <app-locale-date-picker  (onSelectDateValue)='selectDateValue($event)'></app-locale-date-picker>
+// inside the parent component template, then
+// paste the following function:
+//              selectDateValue( dateRangeObj: any ) {
+//                console.log(dateRangeObj);//replace with custom code
+//                }
+// inside the parent component class
+
+import { AfterViewInit, Component, EventEmitter, Output, Input } from '@angular/core';
+import { DateAdapter } from '@angular/material/core';
+import { MatDatepicker } from '@angular/material/datepicker';
+import { DeviceDetectorService } from 'ngx-device-detector';
+import { DisplayConfigurationService } from '../../../services/display-configuration.service';
+import { UtilityService } from '../../utility.service';
+@Component({
+  selector: 'app-locale-date-picker',
+  templateUrl: './locale-date-picker.component.html',
+  styleUrls: ['./locale-date-picker.component.scss']
+})
+export class LocaleDatePickerComponent implements AfterViewInit {
+  @Output()
+  public onSelectDateValue: EventEmitter<{
+    minDate: Date;
+    maxDate: Date;
+  }> = new EventEmitter<{ minDate: Date; maxDate: Date }>();
+  @Input()
+  public inline: boolean = false;
+
+  @Input() public dateToStart: Date;
+  @Input() public maxDateFromComponent: Date;
+  public today: Date = new Date();
+  public minDate: Date = new Date();
+  public maxDate: Date = new Date();
+
+  constructor(
+    private displayService: DisplayConfigurationService,
+    private adapter: DateAdapter<Date>,
+    private utility: UtilityService,
+    public deviceService: DeviceDetectorService
+  ) {
+    // set the locale language for formatting the date on the datePicker
+    this.adapter.setLocale(this.displayService.currentLanguage.isoCode);
+  }
+  openCalendar(picker: MatDatepicker<Date>): void {
+    // set the locale language for formatting the date on the datePicker
+    this.adapter.setLocale(this.displayService.currentLanguage.isoCode);
+    picker.open();
+  }
+
+  onChangeF(event: string): void {
+    this.minDate = this.utility.toStartDay(new Date(event));
+    if (this.minDate > this.maxDate) {
+      this.maxDate = null;
+    }
+
+    this.onSelectDateValue.emit({
+      minDate: this.minDate,
+      maxDate: this.maxDate
+    });
+  }
+
+  onChangeT(event: string): void {
+    this.maxDate = this.utility.toEndDay(new Date(event));
+    if (this.maxDate < this.minDate) {
+      this.minDate = null;
+    }
+
+    this.onSelectDateValue.emit({
+      minDate: this.minDate,
+      maxDate: this.maxDate
+    });
+  }
+
+  ngAfterViewInit(): void {
+    this.minDate = this.utility.toStartDay(this.dateToStart || this.today);
+    this.maxDate = this.utility.toEndDay(this.maxDateFromComponent || this.today);
+    this.onSelectDateValue.emit({
+      minDate: this.minDate,
+      maxDate: this.maxDate
+    });
+  }
+}
+
+
+
+// /src/app/shared/utility/locale-date-picker/locale-date-picker.component.html
+
+<div fxFlex="100" [fxLayout]="inline ? 'row' : 'column'" [fxLayoutAlign]="inline ? 'start' : 'start stretch'"
+  [fxLayoutGap]="inline ? '16px' : '0px'">
+  <mat-form-field [fxFlex]="inline ? '50' : '100'" appearance="outline" class="form-container user-area-override">
+    <mat-label>{{'FROM_DATE' | translate}}</mat-label>
+    <input [(ngModel)]="minDate" readonly #elementToFocusF (focus)="openCalendar(dpF)" (click)="openCalendar(dpF)"
+      (dateChange)="onChangeF($event.value)" [max]="maxDateFromComponent ||today" matInput [matDatepicker]="dpF"
+      placeholder="{{'FORMATDATE' | translate}}" />
+    <mat-datepicker-toggle matSuffix [for]="dpF"></mat-datepicker-toggle>
+    <mat-datepicker [touchUi]="deviceService.isMobile()" #dpF></mat-datepicker>
+  </mat-form-field>
+  <mat-form-field [fxFlex]="inline ? '50' : '100'" appearance="outline" class="form-container  user-area-override">
+    <mat-label>{{'TO_DATE' | translate}}</mat-label>
+    <input [(ngModel)]="maxDate" readonly #elementToFocusT (dateChange)="onChangeT($event.value)"
+      (focus)="openCalendar(dpT)" (click)="openCalendar(dpT)" matInput [max]="maxDateFromComponent || today"
+      [matDatepicker]="dpT" placeholder="{{'FORMATDATE' | translate}}" />
+    <mat-datepicker-toggle matSuffix [for]="dpT" (click)="openCalendar(dpT)"></mat-datepicker-toggle>
+    <mat-datepicker [touchUi]="deviceService.isMobile()" #dpT></mat-datepicker>
+  </mat-form-field>
+</div>
+
+// /src/app/pages/user-area/reports/statement-virtual-shop/statement-virtual-shop.component.html
+
+            <app-locale-date-picker [inline]="true"
+              (onSelectDateValue)="selectDateValue($event.minDate, $event.maxDate)" [dateToStart]="dateToStart"
+              [maxDateFromComponent]="dateToStart">
+            </app-locale-date-picker>
+
+// /src/app/pages/user-area/reports/statement-virtual-shop/models/RequestCtdAggregates.ts
+
+export class RequestCtdAggregates {
+
+  // tslint:disable-next-line:variable-name
+  private _UserId: number;
+  public get UserId(): number {
+    return this._UserId;
+  }
+  public set UserId(value: number) {
+    this._UserId = value;
+  }
+
+  // tslint:disable-next-line:variable-name
+  private _FromDate: Date;
+  public get FromDate(): Date {
+    return this._FromDate;
+  }
+  public set FromDate(value: Date) {
+    this._FromDate = value;
+  }
+
+  // tslint:disable-next-line:variable-name
+  private _ToDate: Date;
+  public get ToDate(): Date {
+    return this._ToDate;
+  }
+  public set ToDate(value: Date) {
+    this._ToDate = value;
+  }
+
+  constructor() {
+    const today: Date = new Date();
+    this.UserId = 0;
+    this.FromDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0);
+    this.ToDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+  }
+
+}
+
+
+// /src/app/pages/user-area/reports/statement-virtual-shop/statement-virtual-shop.component.ts
+
+  dateToStart: Date;
+  constructor(
+
+  ) {
+    const toDay = new Date();
+    this.dateToStart = new Date(toDay.getFullYear(), toDay.getMonth(), toDay.getDate() - 1, 0, 0, 0);
+  }
+
